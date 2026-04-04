@@ -43,27 +43,27 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		var t model.Telemetry
 
-		err := json.Unmarshal(msg, &t)
+		err = json.Unmarshal(msg, &t)
 		if err != nil {
 			s.reply(conn, "Invalid JSON")
 			continue
 		}
 
-		err := validator.Validate(&t)
+		err = validator.Validate(&t)
 		if err != nil {
 			log.Printf("Rejected: %v", err)
 			s.reply(conn, err.Error())
 			continue
 		}
 		
-		err := s.fwd.Forward(&t)
+		err = s.fwd.Forward(&t)
 		if err != nil {
 			log.Printf("Forward Error: %v", err)
 			s.reply(conn, err.Error())
 			continue
 		}
 
-		conn.WriteMessage(websocket.TextMessage, []byte({`{"ok":true}`}))
+		conn.WriteMessage(websocket.TextMessage, []byte(`{"ok":true}`))
 	}
 }
 

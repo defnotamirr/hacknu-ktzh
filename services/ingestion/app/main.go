@@ -11,7 +11,7 @@ import(
 )
 
 func main() {
-	natsUrl = os.Getenv("NATS_URL")
+	natsUrl := os.Getenv("NATS_URL")
 	if natsUrl == "" {
 		natsUrl = nats.DefaultURL
 	}
@@ -26,7 +26,7 @@ func main() {
 	forward := pipeline.NewForwarder(nc)
 	server := ws.NewServer(forward)
 
-	http.Handle("/ingest/ws", server)
+	http.Handle("/ingestion/ws", server)
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request){
 		w.Write([]byte("ok"))
 	})
@@ -35,6 +35,6 @@ func main() {
 	if port == "" {
 		port = "8081"
 	}
-	log.Prinln("Listening on: " + port)
+	log.Println("Listening on: " + port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

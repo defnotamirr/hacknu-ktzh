@@ -8,25 +8,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Настройки апгрейдера для веб-сокетов
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Разрешаем подключения откуда угодно
+		return true
 	},
 }
 
-// HandleWebSocket — отдельная функция, которая управляет подключением
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Ошибка соединения:", err)
+		log.Println("Connection Error:", err)
 		return
 	}
 	defer ws.Close()
 
-	log.Println("✅ Подключился новый клиент!")
+	log.Println("Client successfully connected")
 
-	// Создаем локомотив для этого подключения
 	loco := SharedLoco
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -37,7 +34,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		err := ws.WriteJSON(data)
 		if err != nil {
-			log.Println("❌ Клиент отключился")
+			log.Println("Client disconnected.")
 			break
 		}
 	}
