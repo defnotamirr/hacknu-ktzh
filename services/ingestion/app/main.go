@@ -26,7 +26,7 @@ func main() {
 	forward := pipeline.NewForwarder(nc)
 	server := ws.NewServer(forward)
 
-	http.Handle("/ingestion/ws", server)
+	http.Handle("/ws", server)
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request){
 		w.Write([]byte("ok"))
 	})
