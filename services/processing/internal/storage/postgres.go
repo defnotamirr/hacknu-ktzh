@@ -29,7 +29,7 @@ func New(dsn string) (*DB, error) {
 	s := &DB{db: db}
 	err = s.migrate()
 	if err != nil {
-		return nill, err
+		return nil, err
 	}
 
 	return s, nil
@@ -91,7 +91,7 @@ func (s *DB) History(from int64, lim int) ([]model.ProcessedFrame, error) {
 		WHERE ts > $1
 		ORDER BY ts ASC
 		LIMIT $2`,
-		time.UnixMilli(from), limit,
+		time.UnixMilli(from), lim,
 	)
 	if err != nil {
 		return nil, err 
@@ -107,7 +107,7 @@ func (s *DB) History(from int64, lim int) ([]model.ProcessedFrame, error) {
 		if err != nil {
 			return nil, err 
 		}
-		cur.Timestamp = ts.UnixMilli()
+		cur.Timestamp = timeSt.UnixMilli()
 		_ = json.Unmarshal(alertsJSON, &cur.Alerts)
 		frames = append(frames, cur)
 	}
@@ -132,7 +132,7 @@ func (s *DB) Downsample(from int64, lim int) ([]model.ProcessedFrame, error) {
 		GROUP BY 1
 		ORDER BY 1 ASC
 		LIMIT $2`,
-		time.UnixMilli(from), limit,
+		time.UnixMilli(from), lim,
 	)
 	if err != nil {
 		return nil, err 
@@ -148,7 +148,7 @@ func (s *DB) Downsample(from int64, lim int) ([]model.ProcessedFrame, error) {
 		if err != nil {
 			return nil, err 
 		}
-		cur.Timestamp = ts.UnixMilli()
+		cur.Timestamp = timeSt.UnixMilli()
 		_ = json.Unmarshal(alertsJSON, &cur.Alerts)
 		frames = append(frames, cur)
 	}

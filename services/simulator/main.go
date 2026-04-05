@@ -34,7 +34,7 @@ func streamToIngestion(ingestionURL string) {
 				log.Println("Disconnected: ", err)
 				ticker.Stop()
 				conn.Close()
-				break 
+				break
 			}
 		}
 	}
@@ -43,6 +43,7 @@ func main() {
 	ingestionURL := "ws://ingestion:8081/ws"
 	go streamToIngestion(ingestionURL)
 
+	// 2. МАРШРУТ ДЛЯ ПОЧИНКИ (Трогать нельзя, фронтенд ждет его тут)
 	http.HandleFunc("/fix", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
@@ -61,7 +62,8 @@ func main() {
 
 	log.Println("Simulator is running.")
 
-	err := http.ListenAndServe(":8081", nil)
+	// 3. Запускаем сервер для кнопки /fix
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal("Ошибка запуска сервера: ", err)
 	}

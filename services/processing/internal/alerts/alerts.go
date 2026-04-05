@@ -1,6 +1,6 @@
 package alerts
 
-import "github.com/xyn3x/hacknu-ktzh/service/processing/internal/model"
+import "github.com/xyn3x/hacknu-ktzh/services/processing/internal/model"
 
 func Check(t *model.Telemetry) []string {
 	var result []string

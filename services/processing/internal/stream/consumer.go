@@ -3,6 +3,8 @@ package stream
 import(
 	"encoding/json"
 	"log"
+	"context"
+	"math"
 
 	"github.com/segmentio/kafka-go"
  
@@ -19,7 +21,23 @@ type Consumer struct {
 	writer 		*kafka.Writer 
 	db 			*storage.DB
 	smoother 	*smoothing.Smoother
+	prev 		*model.Telemetry
 }
+
+var spikeLimits = struct {
+	Speed    float64 // км/ч за тик
+	Temp     float64 // °C за тик
+	Pressure float64 // бар за тик
+	Fuel     float64 // % за тик
+	Voltage  float64 // В за тик
+}{
+	Speed:    20,  // поезд не может разогнаться/затормозить на 20 км/ч за секунду
+	Temp:     10,  // двигатель не нагревается на 10C за секунду в норме
+	Pressure: 2,   // давление не падает на 2 бар за секунду в норме
+	Fuel:     2,   // топливо не уходит на 2% за секунду
+	Voltage:  200, // напряжение не прыгает на 200В за секунду
+}
+ 
 
 func NewConsumer(brokers []string, db *storage.DB) *Consumer {
 	return &Consumer{
@@ -64,14 +82,34 @@ func (c *Consumer) process(ctx context.Context, data []byte) {
 		return 
 	}
 
-	smoothed := &model.Telemetry {
+	spikeDetected := false
+	if c.prev != nil {
+		if math.Abs(t.Speed-c.prev.Speed)       > spikeLimits.Speed    ||
+			math.Abs(t.Temp-c.prev.Temp)         > spikeLimits.Temp     ||
+			math.Abs(t.Pressure-c.prev.Pressure) > spikeLimits.Pressure ||
+			math.Abs(t.Fuel-c.prev.Fuel)         > spikeLimits.Fuel     ||
+			math.Abs(t.Voltage-c.prev.Voltage)   > spikeLimits.Voltage  {
+			spikeDetected = true
+			log.Printf("[consumer] spike detected: speed Δ%.1f temp Δ%.1f pressure Δ%.2f fuel Δ%.1f voltage Δ%.0f",
+				math.Abs(t.Speed-c.prev.Speed),
+				math.Abs(t.Temp-c.prev.Temp),
+				math.Abs(t.Pressure-c.prev.Pressure),
+				math.Abs(t.Fuel-c.prev.Fuel),
+				math.Abs(t.Voltage-c.prev.Voltage),
+			)
+		}
+	}
+	c.prev = &t
+
+	hasError := t.Error || spikeDetected
+	smoothed := model.Telemetry {
 		Timestamp: t.Timestamp,
 		Speed:     c.smoother.Speed.Update(t.Speed),
 		Temp:      c.smoother.Temp.Update(t.Temp),
 		Pressure:  c.smoother.Pressure.Update(t.Pressure),
 		Fuel:      c.smoother.Fuel.Update(t.Fuel),
 		Voltage:   c.smoother.Voltage.Update(t.Voltage),
-		Error:     t.Error,
+		Error:     hasError,
 	}
 
 	h := health.Compute(
@@ -79,22 +117,22 @@ func (c *Consumer) process(ctx context.Context, data []byte) {
 		smoothed.Fuel, smoothed.Voltage, smoothed.Error,
 	)
 
-	al := alerts.Check(smoothed)
+	al := alerts.Check(&smoothed)
 
-	frame := &model.ProcessedFrame{
-		Telemetry: *smoothed,
+	frame := model.ProcessedFrame{
+		Telemetry: smoothed,
 		Health:    h,
 		Alerts:    al,
 	}
 
-	err = c.db.Save(frame)
+	err = c.db.Save(&frame)
 	if err != nil {
 		log.Println("[consumer] can't save in db: ", err)
 		return 
 	}
 
 	out, _ := json.Marshal(frame)
-	err = c.writer.WriteMessage(ctx, kafka.Message{Value: out})
+	err = c.writer.WriteMessages(ctx, kafka.Message{Value: out})
 	if err != nil {
 		log.Println("[consumer] publish processed error:", err)
 	}

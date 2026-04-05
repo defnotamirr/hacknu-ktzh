@@ -9,13 +9,13 @@ import (
 	"syscall"
  
 	"github.com/xyn3x/hacknu-ktzh/services/processing/internal/storage"
-	"github.com/xyn3x/hacknu-ktzh/service/processing/internal/stream"
+	"github.com/xyn3x/hacknu-ktzh/services/processing/internal/stream"
 )
 
 func main() {
-	brokers := strings.Split(env("REDPANDA_BROKERS", "localhost:9092"), ",")
+	brokers := strings.Split(env("REDPANDA_BROKERS", "redpanda:29092"), ",")
 
-	pgDSN := env("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/telemetry?sslmode=disable")
+	pgDSN := env("POSTGRES_DSN", "postgres://postgres:postgres@timescaledb:5432/telemetry?sslmode=disable")
 
 	db, err := storage.New(pgDSN)
 	if err != nil {

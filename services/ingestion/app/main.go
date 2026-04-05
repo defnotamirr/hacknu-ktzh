@@ -11,7 +11,7 @@ import(
 )
 
 func main() {
-	brokers := strings.Split(env("REDPANDA_BROKERS", "localhost:9092"), ",")
+	brokers := strings.Split(env("REDPANDA_BROKERS", "redpanda:29092"), ",")
 
 	port := env("INGESTION_PORT", "8081")
 
